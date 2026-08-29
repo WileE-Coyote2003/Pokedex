@@ -26,7 +26,7 @@ struct ContentView: View {
                 TeamView()
             }
             .tabItem {
-                Label("Team",systemImage: "heart")
+                Label("Team", image: "pokeball")
             }
             NavigationStack{
                 CompareView()

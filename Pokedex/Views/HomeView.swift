@@ -9,6 +9,10 @@ import SwiftUI
 
 struct HomeView: View {
     var body: some View {
-        Text("Hello, World!")
+        ScrollView {
+            Text("Home content will go here")
+        }
+        .navigationTitle("Pokédex")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
