@@ -14,5 +14,20 @@ struct HomeView: View {
         }
         .navigationTitle("Pokédex")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Menu", systemImage: "line.3.horizontal") {
+                    // Menu action will be added here.
+                }
+                .labelStyle(.iconOnly)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Favorites", systemImage: "heart") {
+                    // Favorites action will be added here.
+                }
+                .labelStyle(.iconOnly)
+            }
+        }
     }
 }
