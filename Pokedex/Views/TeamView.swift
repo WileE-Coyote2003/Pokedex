@@ -10,5 +10,10 @@ import SwiftUI
 struct TeamView: View {
     var body: some View {
         Text("Team View!")
+        ScrollView{
+            
+        }
+        .navigationTitle("My Team")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

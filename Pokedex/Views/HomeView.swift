@@ -10,24 +10,36 @@ import SwiftUI
 struct HomeView: View {
     var body: some View {
         ScrollView {
-            Text("Home content will go here")
+            VStack(spacing: 20) {
+                Text("Popular Pokémon")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
         }
         .navigationTitle("Pokédex")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Menu", systemImage: "line.3.horizontal") {
-                    // Menu action will be added here.
+                Button {
+                } label: {
+                    Image(systemName: "line.3.horizontal")
                 }
-                .labelStyle(.iconOnly)
             }
-
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Favorites", systemImage: "heart") {
-                    // Favorites action will be added here.
+                Button {
+                    // Favorites action later
+                } label: {
+                    Image(systemName: "heart")
                 }
-                .labelStyle(.iconOnly)
             }
         }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        HomeView()
     }
 }

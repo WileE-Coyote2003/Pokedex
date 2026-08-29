@@ -8,7 +8,30 @@
 import SwiftUI
 
 struct SearchView: View {
+    @State private var searchText = ""
     var body: some View {
-        Text("Search View!")
+        VStack {
+            Text("Search results will go here")
+        }
+        .navigationTitle("Search")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(
+            text: $searchText,
+            prompt: "Search Pokémon"
+        )
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Filter", systemImage: "line.3.horizontal.decrease.circle") {
+                    // Filter action will be added here.
+                }
+                .labelStyle(.iconOnly)
+            }
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SearchView()
     }
 }
