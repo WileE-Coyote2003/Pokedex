@@ -10,29 +10,11 @@ struct HomeView: View {
     var body: some View {
         VStack(spacing: 0) {
 
-            // Search button
-            NavigationLink {
-                SearchView()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-
-                    Text("Search Pokémon")
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 14)
-                )
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal)
-            .padding(.top, 10)
+            Text("Popular Pokémon")
+                .font(.title2.weight(.bold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .padding(.top, 10)
 
             // Pokémon cards
             ScrollView {

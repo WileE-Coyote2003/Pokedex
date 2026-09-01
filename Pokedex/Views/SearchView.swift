@@ -9,7 +9,7 @@ struct SearchView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !query.isEmpty else {
-            return []
+            return samplePokemon
         }
 
         return samplePokemon.filter {
@@ -50,41 +50,31 @@ struct SearchView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                         ? "All Pokémon (\(searchResults.count))"
+                         : "Results (\(searchResults.count))")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .padding(.top, 10)
 
-                    // Results
-                    if !searchText
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                        .isEmpty {
-
-                        Text("Results (\(searchResults.count))")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .padding(.top, 10)
-
-                        if searchResults.isEmpty {
-
-                            Text("No Pokémon found")
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 30)
-
-                        } else {
-
-                            LazyVStack(spacing: 10) {
-
-                                ForEach(searchResults) { pokemon in
-
-                                    NavigationLink {
-                                        PokemonDetailView(
-                                            pokemon: pokemon
-                                        )
-                                    } label: {
-                                        PokemonSearchResultCard(
-                                            pokemon: pokemon
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+                    if searchResults.isEmpty {
+                        Text("No Pokémon found")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 30)
+                    } else {
+                        LazyVStack(spacing: 10) {
+                            ForEach(searchResults) { pokemon in
+                                NavigationLink {
+                                    PokemonDetailView(
+                                        pokemon: pokemon
+                                    )
+                                } label: {
+                                    PokemonSearchResultCard(
+                                        pokemon: pokemon
+                                    )
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }

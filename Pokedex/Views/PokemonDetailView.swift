@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PokemonDetailView: View {
     let pokemon: Pokemon
-    @Binding var isFavorite: Bool
+    @State private var isFavorite = false
     @State private var addedToTeam = false
 
     private var themeColor: Color { pokemon.primaryType.color }
@@ -84,7 +84,7 @@ struct PokemonDetailView: View {
                 .shadow(color: themeColor.opacity(0.35), radius: 12, y: 6)
             }
 
-            Text(pokemon.numberText)
+            Text(pokemon.formattedNumber)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(themeColor)
                 .padding(.horizontal, 10)
@@ -255,5 +255,44 @@ struct StatRow: View {
             .frame(height: 10)
         }
         .frame(height: 22)
+    }
+}
+
+private struct PokemonTypeLabel: View {
+    let type: String
+    let filled: Bool
+
+    var body: some View {
+        Text(type)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(filled ? .white : type.color)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(filled ? type.color : type.color.opacity(0.15), in: Capsule())
+    }
+}
+
+private extension String {
+    var color: Color {
+        switch lowercased() {
+        case "fire": .orange
+        case "water": .blue
+        case "grass": .green
+        case "electric": .yellow
+        case "psychic": .pink
+        case "poison": .purple
+        case "flying": .cyan
+        case "bug": .mint
+        case "fighting": .red
+        case "ground": .brown
+        case "rock": .gray
+        case "ghost": .indigo
+        case "ice": .teal
+        case "dragon": .indigo
+        case "dark": .black
+        case "steel": .gray
+        case "fairy": .pink
+        default: .secondary
+        }
     }
 }
