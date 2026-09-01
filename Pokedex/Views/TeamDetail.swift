@@ -7,59 +7,13 @@
 
 import SwiftUI
 
-struct TeamMember: Identifiable {
-    let id = UUID()
-    let name: String
-    let types: [PokemonType]
-}
-
-enum PokemonType: String {
-    case electric = "Electric"
-    case fire = "Fire"
-    case flying = "Flying"
-    case water = "Water"
-    case grass = "Grass"
-    case poison = "Poison"
-    case ghost = "Ghost"
-    case dragon = "Dragon"
-    case ground = "Ground"
-
-    var color: Color {
-        switch self {
-        case .electric: .yellow
-        case .fire: .orange
-        case .flying: .blue
-        case .water: .blue
-        case .grass: .green
-        case .poison: .purple
-        case .ghost: .indigo
-        case .dragon: .indigo
-        case .ground: .brown
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .electric: "bolt.fill"
-        case .fire: "flame.fill"
-        case .flying: "wind"
-        case .water: "drop.fill"
-        case .grass: "leaf.fill"
-        case .poison: "circle.hexagongrid.fill"
-        case .ghost: "sparkles"
-        case .dragon: "hurricane"
-        case .ground: "mountain.2.fill"
-        }
-    }
-}
-
 struct TeamDetail: View {
     @Environment(\.dismiss) private var dismiss
 
     let teamName: String
     let pokeballAssetName: String
     let accentColor: Color
-    let members: [TeamMember]
+    let members: [Pokemon]
     var capacity = 6
 
     var body: some View {
@@ -163,7 +117,7 @@ struct TeamDetail: View {
 }
 
 private struct TeamMemberRow: View {
-    let member: TeamMember
+    let member: Pokemon
 
     var body: some View {
         Button {
@@ -173,18 +127,18 @@ private struct TeamMemberRow: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color(uiColor: .secondarySystemBackground))
                     .frame(width: 88, height: 72)
-                    .accessibilityLabel("Pokémon image placeholder")
+                    .overlay {
+                        Text(member.typeIcon)
+                            .font(.largeTitle)
+                    }
+                    .accessibilityLabel("\(member.primaryType) type icon")
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(member.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
 
-                    HStack(spacing: 6) {
-                        ForEach(member.types, id: \.self) { type in
-                            TypeBadge(type: type)
-                        }
-                    }
+                    TypeBadge(pokemon: member)
                 }
 
                 Spacer(minLength: 4)
@@ -198,20 +152,20 @@ private struct TeamMemberRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(member.name), \(member.types.map(\.rawValue).joined(separator: ", "))")
+        .accessibilityLabel("\(member.name), \(member.primaryType) type")
     }
 }
 
 private struct TypeBadge: View {
-    let type: PokemonType
+    let pokemon: Pokemon
 
     var body: some View {
-        Label(type.rawValue, systemImage: type.symbol)
+        Text("\(pokemon.typeIcon)  \(pokemon.primaryType)")
             .font(.caption.weight(.semibold))
-            .foregroundStyle(type.color)
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(type.color.opacity(0.14), in: Capsule())
+            .background(Color.secondary.opacity(0.12), in: Capsule())
     }
 }
 
@@ -221,11 +175,7 @@ private struct TypeBadge: View {
             teamName: "Kanto Champions",
             pokeballAssetName: "teamPokeBall",
             accentColor: .red,
-            members: [
-                TeamMember(name: "Pikachu", types: [.electric]),
-                TeamMember(name: "Charizard", types: [.fire, .flying]),
-                TeamMember(name: "Blastoise", types: [.water])
-            ]
+            members: Array(samplePokemon.prefix(3))
         )
     }
 }
