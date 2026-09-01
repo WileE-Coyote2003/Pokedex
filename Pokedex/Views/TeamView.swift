@@ -9,58 +9,97 @@ import SwiftUI
 
 struct TeamView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("My Teams")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Text("Build and manage your Pokémon teams")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("My Teams")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                        Text("Build and manage your Pokémon teams")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    NavigationLink {
+                        TeamCreate()
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(width: 48, height: 48)
+                            .background(.red, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .shadow(color: .red.opacity(0.25), radius: 6, y: 3)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Create a new team")
                 }
-                Spacer()
-                NavigationLink {
-                    TeamCreate()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .frame(width: 50, height: 50)
-                        .background(.blue)
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Create a new team")
+
+                TeamCard(
+                    name: "Kanto Champions",
+                    pokemonCount: kantoMembers.count,
+                    pokeballAssetName: "teamPokeBall",
+                    borderColor: .red,
+                    destination: TeamDetail(
+                        teamName: "Kanto Champions",
+                        pokeballAssetName: "teamPokeBall",
+                        accentColor: .red,
+                        members: kantoMembers
+                    )
+                )
+                .padding(.top, 24)
+                .accessibilityIdentifier("kantoChampionsTeamCard")
+
+                TeamCard(
+                    name: "Sinnoh Legends",
+                    pokemonCount: sinnohMembers.count,
+                    pokeballAssetName: "teamGreatBall",
+                    borderColor: .blue,
+                    destination: TeamDetail(
+                        teamName: "Sinnoh Legends",
+                        pokeballAssetName: "teamGreatBall",
+                        accentColor: .blue,
+                        members: sinnohMembers
+                    )
+                )
+                .padding(.top, 16)
+                .accessibilityIdentifier("sinnohLegendsTeamCard")
             }
-            .padding(.horizontal)
-            .padding(.top, 16)
-            Divider()
-                .padding(.top, 18)
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                Image(systemName: "person.2")
-                    .font(.system(size: 54, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-
-                Text("No team yet!")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-
-                Text("Create your first Pokémon team!")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-
-            Spacer()
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+        }
+        .background {
+            Color.white
+                .ignoresSafeArea()
         }
         .navigationBarHidden(true)
+    }
+
+    private var kantoMembers: [TeamMember] {
+        [
+            TeamMember(name: "Pikachu", types: [.electric]),
+            TeamMember(name: "Charizard", types: [.fire, .flying]),
+            TeamMember(name: "Blastoise", types: [.water]),
+            TeamMember(name: "Venusaur", types: [.grass, .poison]),
+            TeamMember(name: "Gengar", types: [.ghost, .poison]),
+            TeamMember(name: "Dragonite", types: [.dragon, .flying])
+        ]
+    }
+
+    private var sinnohMembers: [TeamMember] {
+        [
+            TeamMember(name: "Torterra", types: [.grass, .ground]),
+            TeamMember(name: "Garchomp", types: [.dragon, .ground])
+        ]
+    }
+}
+
+#Preview {
+    NavigationStack {
+        TeamView()
     }
 }

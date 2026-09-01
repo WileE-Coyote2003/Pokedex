@@ -89,8 +89,8 @@ struct TeamCreate: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(.blue, in: Capsule())
-                        .shadow(color: .blue.opacity(0.22), radius: 8, y: 4)
+                        .background(.red, in: Capsule())
+                        .shadow(color: .red.opacity(0.22), radius: 8, y: 4)
                 }
                 .buttonStyle(.plain)
                 .disabled(trimmedTeamName.isEmpty)
