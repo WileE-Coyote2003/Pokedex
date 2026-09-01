@@ -12,8 +12,13 @@ struct TeamCreate: View {
 
     @State private var teamName = ""
     @State private var selectedPokeball: PokeballOption = .pokeBall
+    @State private var selectedPokemonIDs: Set<Int> = []
 
     private let characterLimit = 20
+    private let pokemonColumns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
 
     var body: some View {
         ScrollView {
@@ -80,6 +85,39 @@ struct TeamCreate: View {
                 }
                 .padding(.top, 14)
 
+                HStack {
+                    Text("Choose Pokémon")
+                        .font(.headline)
+
+                    Spacer()
+
+                    Text("\(selectedPokemonIDs.count) / 6")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 28)
+
+                LazyVGrid(columns: pokemonColumns, spacing: 10) {
+                    ForEach(samplePokemon) { pokemon in
+                        let isSelected = selectedPokemonIDs.contains(pokemon.id)
+
+                        Button {
+                            if isSelected {
+                                selectedPokemonIDs.remove(pokemon.id)
+                            } else if selectedPokemonIDs.count < 6 {
+                                selectedPokemonIDs.insert(pokemon.id)
+                            }
+                        } label: {
+                            TeamPokemonOptionCard(
+                                pokemon: pokemon,
+                                isSelected: isSelected
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 12)
+
                 Button {
                     // Save the new team when team storage is added.
                     dismiss()
@@ -95,7 +133,7 @@ struct TeamCreate: View {
                 .buttonStyle(.plain)
                 .disabled(trimmedTeamName.isEmpty)
                 .opacity(trimmedTeamName.isEmpty ? 0.45 : 1)
-                .padding(.top, 92)
+                .padding(.top, 32)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
@@ -132,6 +170,44 @@ struct TeamCreate: View {
                 Circle()
                     .stroke(.blue.opacity(0.35), lineWidth: 1.5)
             }
+    }
+}
+
+private struct TeamPokemonOptionCard: View {
+    let pokemon: Pokemon
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(pokemon.typeIcon)
+                .font(.title2)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pokemon.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(pokemon.primaryType)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isSelected ? .blue : .secondary)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(
+            isSelected ? Color.blue.opacity(0.1) : Color(uiColor: .secondarySystemBackground),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isSelected ? Color.blue : Color.secondary.opacity(0.15), lineWidth: 1)
+        }
     }
 }
 

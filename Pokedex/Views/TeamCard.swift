@@ -6,12 +6,16 @@ import SwiftUI
 
 struct TeamCard<Destination: View>: View {
     let name: String
-    let pokemonCount: Int
+    let members: [Pokemon]
     var capacity = 6
     var pokeballAssetName = "teamPokeBall"
     var borderColor: Color = .red
 
     let destination: Destination
+
+    private var pokemonCount: Int {
+        min(members.count, capacity)
+    }
 
     var body: some View {
         NavigationLink(destination: destination) {
@@ -77,7 +81,13 @@ struct TeamCard<Destination: View>: View {
     }
 }
 
-//#Preview {
-//    TeamCard(name: "Kanto Champions", pokemonCount: 0)
-//        .padding()
-//}
+#Preview {
+    NavigationStack {
+        TeamCard(
+            name: "Kanto Champions",
+            members: Array(samplePokemon.prefix(3)),
+            destination: Text("Team details")
+        )
+        .padding()
+    }
+}

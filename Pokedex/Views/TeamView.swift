@@ -40,7 +40,7 @@ struct TeamView: View {
 
                 TeamCard(
                     name: "Kanto Champions",
-                    pokemonCount: kantoMembers.count,
+                    members: kantoMembers,
                     pokeballAssetName: "teamPokeBall",
                     borderColor: .red,
                     destination: TeamDetail(
@@ -55,7 +55,7 @@ struct TeamView: View {
 
                 TeamCard(
                     name: "Sinnoh Legends",
-                    pokemonCount: sinnohMembers.count,
+                    members: sinnohMembers,
                     pokeballAssetName: "teamGreatBall",
                     borderColor: .blue,
                     destination: TeamDetail(
@@ -79,22 +79,12 @@ struct TeamView: View {
         .navigationBarHidden(true)
     }
 
-    private var kantoMembers: [TeamMember] {
-        [
-            TeamMember(name: "Pikachu", types: [.electric]),
-            TeamMember(name: "Charizard", types: [.fire, .flying]),
-            TeamMember(name: "Blastoise", types: [.water]),
-            TeamMember(name: "Venusaur", types: [.grass, .poison]),
-            TeamMember(name: "Gengar", types: [.ghost, .poison]),
-            TeamMember(name: "Dragonite", types: [.dragon, .flying])
-        ]
+    private var kantoMembers: [Pokemon] {
+        Array(samplePokemon.prefix(6))
     }
 
-    private var sinnohMembers: [TeamMember] {
-        [
-            TeamMember(name: "Torterra", types: [.grass, .ground]),
-            TeamMember(name: "Garchomp", types: [.dragon, .ground])
-        ]
+    private var sinnohMembers: [Pokemon] {
+        Array(samplePokemon.suffix(2))
     }
 }
 
