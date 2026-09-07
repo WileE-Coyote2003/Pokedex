@@ -9,6 +9,12 @@ import SwiftUI
 
 struct CompareView: View {
     var body: some View {
-        Text("Comapre View!")
+        ComparePickerView(pokemon: samplePokemon)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        CompareView()
     }
 }
