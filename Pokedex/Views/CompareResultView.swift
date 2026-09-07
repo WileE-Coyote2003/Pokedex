@@ -104,7 +104,7 @@ struct CompareResultView: View {
         pokemon: Pokemon
     ) -> some View {
 
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
 
             AsyncImage(url: pokemon.imageURL) { phase in
 
@@ -127,32 +127,52 @@ struct CompareResultView: View {
                     EmptyView()
                 }
             }
-            .frame(height: 130)
+            .frame(height: 108)
 
-            Text(pokemon.name)
-                .font(.headline.weight(.bold))
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(pokemon.name)
+                    .font(.headline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
-            Text(pokemon.formattedNumber)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(pokemon.formattedNumber)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
 
             HStack(spacing: 5) {
-                Text(typeIcon(for: pokemon.primaryType))
+                Text(pokemon.typeIcon)
 
                 Text(pokemon.primaryType)
                     .font(.caption.weight(.semibold))
             }
-            .foregroundStyle(
-                typeColor(for: pokemon.primaryType)
-            )
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                typeColor(for: pokemon.primaryType).opacity(0.12)
-            )
+            .foregroundStyle(typeColor(for: pokemon.primaryType))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(typeColor(for: pokemon.primaryType).opacity(0.12))
             .clipShape(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(pokemon.primaryType) type")
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(typeColor(for: pokemon.primaryType).opacity(0.10))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    typeColor(for: pokemon.primaryType).opacity(0.28),
+                    lineWidth: 1
+                )
+        }
+        .shadow(
+            color: typeColor(for: pokemon.primaryType).opacity(0.12),
+            radius: 8,
+            y: 4
+        )
     }
 
 
@@ -251,8 +271,8 @@ struct CompareResultView: View {
 
             informationRow(
                 title: "Type",
-                leftValue: leftPokemon.types.joined(separator: " / "),
-                rightValue: rightPokemon.types.joined(separator: " / ")
+                leftValue: "\(leftPokemon.typeIcon) \(leftPokemon.primaryType)",
+                rightValue: "\(rightPokemon.typeIcon) \(rightPokemon.primaryType)"
             )
 
             informationRow(
