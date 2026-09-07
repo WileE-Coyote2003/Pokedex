@@ -8,211 +8,335 @@
 import SwiftUI
 
 struct CompareResultView: View {
-    let pokemonA: Pokemon
-    let pokemonB: Pokemon
 
-    private var winner: Pokemon? {
-        let totalA = statTotal(for: pokemonA)
-        let totalB = statTotal(for: pokemonB)
-
-        guard totalA != totalB else { return nil }
-        return totalA > totalB ? pokemonA : pokemonB
-    }
+    let leftPokemon: Pokemon
+    let rightPokemon: Pokemon
 
     var body: some View {
+
         ScrollView {
-            VStack(spacing: 22) {
-                headerRow
-                statsCard
-                resultCard
+
+            VStack(spacing: 24) {
+
+                // MARK: - Pokémon Header
+
+                HStack(spacing: 16) {
+
+                    pokemonHeader(
+                        pokemon: leftPokemon
+                    )
+
+                    VStack {
+                        Text("VS")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    pokemonHeader(
+                        pokemon: rightPokemon
+                    )
+                }
+                .padding(.horizontal)
+
+                Divider()
+                    .padding(.horizontal)
+
+                // MARK: - Stats
+
+                VStack(alignment: .leading, spacing: 20) {
+
+                    Text("Base Stats")
+                        .font(.title3.weight(.bold))
+
+                    statRow(
+                        name: "HP",
+                        leftValue: leftPokemon.stats.hp,
+                        rightValue: rightPokemon.stats.hp,
+                        leftColor: typeColor(for: leftPokemon.primaryType),
+                        rightColor: typeColor(for: rightPokemon.primaryType)
+                    )
+
+                    statRow(
+                        name: "Attack",
+                        leftValue: leftPokemon.stats.attack,
+                        rightValue: rightPokemon.stats.attack,
+                        leftColor: typeColor(for: leftPokemon.primaryType),
+                        rightColor: typeColor(for: rightPokemon.primaryType)
+                    )
+
+                    statRow(
+                        name: "Defense",
+                        leftValue: leftPokemon.stats.defense,
+                        rightValue: rightPokemon.stats.defense,
+                        leftColor: typeColor(for: leftPokemon.primaryType),
+                        rightColor: typeColor(for: rightPokemon.primaryType)
+                    )
+
+                    statRow(
+                        name: "Speed",
+                        leftValue: leftPokemon.stats.speed,
+                        rightValue: rightPokemon.stats.speed,
+                        leftColor: typeColor(for: leftPokemon.primaryType),
+                        rightColor: typeColor(for: rightPokemon.primaryType)
+                    )
+                }
+                .padding(.horizontal)
+
+                Divider()
+                    .padding(.horizontal)
+
+                // MARK: - Information
+
+                informationSection
+
             }
-            .padding()
+            .padding(.top, 12)
+            .padding(.bottom, 30)
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("Comparison Result")
+        .navigationTitle("Comparison")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var headerRow: some View {
-        HStack(alignment: .top, spacing: 12) {
-            pokemonHeader(pokemonA)
 
-            Text("VS")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.secondary)
-                .padding(.top, 38)
+    // MARK: - Pokémon Header
 
-            pokemonHeader(pokemonB)
-        }
-    }
+    private func pokemonHeader(
+        pokemon: Pokemon
+    ) -> some View {
 
-    private func pokemonHeader(_ pokemon: Pokemon) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
+
             AsyncImage(url: pokemon.imageURL) { phase in
+
                 switch phase {
+
                 case .success(let image):
-                    image.resizable().scaledToFit()
+                    image
+                        .resizable()
+                        .scaledToFit()
+
                 case .failure:
-                    Image(systemName: "pawprint.fill")
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
                         .foregroundStyle(.secondary)
-                default:
+
+                case .empty:
                     ProgressView()
+
+                @unknown default:
+                    EmptyView()
                 }
             }
-            .frame(width: 88, height: 88)
-            .padding(6)
-            .background(pokemonTypeColor(for: pokemon.primaryType).opacity(0.15), in: RoundedRectangle(cornerRadius: 16))
+            .frame(height: 108)
 
-            Text(pokemon.name)
-                .font(.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(pokemon.name)
+                    .font(.headline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
-            HStack(spacing: 4) {
-                ForEach(pokemon.types, id: \.self) { type in
-                    CompareTypeLabel(type: type)
-                }
+                Text(pokemon.formattedNumber)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-        }
-        .frame(maxWidth: .infinity)
-    }
 
-    private var statsCard: some View {
-        VStack(spacing: 14) {
-            CompareStatRow(label: "HP", valueA: pokemonA.stats.hp, valueB: pokemonB.stats.hp, color: .red)
-            CompareStatRow(label: "Attack", valueA: pokemonA.stats.attack, valueB: pokemonB.stats.attack, color: .orange)
-            CompareStatRow(label: "Defense", valueA: pokemonA.stats.defense, valueB: pokemonB.stats.defense, color: .blue)
-            CompareStatRow(label: "Speed", valueA: pokemonA.stats.speed, valueB: pokemonB.stats.speed, color: .green)
+            HStack(spacing: 5) {
+                Text(pokemon.typeIcon)
 
-            Divider()
-
-            CompareMetricRow(
-                label: "Height",
-                valueA: String(format: "%.1f m", pokemonA.height),
-                valueB: String(format: "%.1f m", pokemonB.height)
-            )
-            CompareMetricRow(
-                label: "Weight",
-                valueA: String(format: "%.1f kg", pokemonA.weight),
-                valueB: String(format: "%.1f kg", pokemonB.weight)
-            )
-        }
-        .padding(18)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-    }
-
-    private var resultCard: some View {
-        HStack(spacing: 10) {
-            Image(systemName: winner == nil ? "equal.circle.fill" : "trophy.fill")
-                .foregroundStyle(.orange)
-            Text(resultText)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.orange, style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        )
-        .accessibilityElement(children: .combine)
-    }
-
-    private var resultText: String {
-        guard let winner else { return "It’s a tie!" }
-        return "Winner: \(winner.name)!"
-    }
-
-    private func statTotal(for pokemon: Pokemon) -> Int {
-        pokemon.stats.hp + pokemon.stats.attack + pokemon.stats.defense + pokemon.stats.speed
-    }
-}
-
-private struct CompareStatRow: View {
-    let label: String
-    let valueA: Int
-    let valueB: Int
-    let color: Color
-
-    private func progress(_ value: Int) -> Double {
-        min(Double(value) / 150.0, 1.0)
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text("\(valueA)")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(color)
-                .frame(width: 30, alignment: .trailing)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .trailing) {
-                    Capsule().fill(color.opacity(0.15))
-                    Capsule()
-                        .fill(color.gradient)
-                        .frame(width: proxy.size.width * progress(valueA))
-                }
+                Text(pokemon.primaryType)
+                    .font(.caption.weight(.semibold))
             }
-            .frame(height: 10)
-
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .frame(width: 56)
-                .multilineTextAlignment(.center)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(color.opacity(0.15))
-                    Capsule()
-                        .fill(color.gradient)
-                        .frame(width: proxy.size.width * progress(valueB))
-                }
-            }
-            .frame(height: 10)
-
-            Text("\(valueB)")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(color)
-                .frame(width: 30, alignment: .leading)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label): \(valueA) versus \(valueB)")
-    }
-}
-
-private struct CompareMetricRow: View {
-    let label: String
-    let valueA: String
-    let valueB: String
-
-    var body: some View {
-        HStack {
-            Text(valueA).frame(maxWidth: .infinity, alignment: .leading)
-            Text(label).font(.subheadline.weight(.semibold)).frame(width: 70)
-            Text(valueB).frame(maxWidth: .infinity, alignment: .trailing)
-        }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label): \(valueA) versus \(valueB)")
-    }
-}
-
-private struct CompareTypeLabel: View {
-    let type: String
-
-    var body: some View {
-        Text(type)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(pokemonTypeColor(for: type))
-            .padding(.horizontal, 7)
+            .foregroundStyle(typeColor(for: pokemon.primaryType))
+            .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .background(pokemonTypeColor(for: type).opacity(0.15), in: Capsule())
+            .background(typeColor(for: pokemon.primaryType).opacity(0.12))
+            .clipShape(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(pokemon.primaryType) type")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(typeColor(for: pokemon.primaryType).opacity(0.10))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    typeColor(for: pokemon.primaryType).opacity(0.28),
+                    lineWidth: 1
+                )
+        }
+        .shadow(
+            color: typeColor(for: pokemon.primaryType).opacity(0.12),
+            radius: 8,
+            y: 4
+        )
+    }
+
+
+    // MARK: - Stat Row
+
+    private func statRow(
+        name: String,
+        leftValue: Int,
+        rightValue: Int,
+        leftColor: Color,
+        rightColor: Color
+    ) -> some View {
+
+        VStack(spacing: 7) {
+
+            HStack {
+
+                Text("\(leftValue)")
+                    .font(.subheadline.weight(.bold))
+                    .frame(width: 40, alignment: .leading)
+
+                Spacer()
+
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                Text("\(rightValue)")
+                    .font(.subheadline.weight(.bold))
+                    .frame(width: 40, alignment: .trailing)
+            }
+
+            HStack(spacing: 8) {
+
+                statBar(
+                    value: leftValue,
+                    color: leftColor
+                )
+
+                statBar(
+                    value: rightValue,
+                    color: rightColor
+                )
+            }
+        }
+    }
+
+
+    // MARK: - Stat Bar
+
+    private func statBar(
+        value: Int,
+        color: Color
+    ) -> some View {
+
+        GeometryReader { geometry in
+
+            ZStack(alignment: .leading) {
+
+                Capsule()
+                    .fill(Color.gray.opacity(0.12))
+
+                Capsule()
+                    .fill(color)
+                    .frame(
+                        width: geometry.size.width *
+                        CGFloat(min(value, 150)) / 150
+                    )
+            }
+        }
+        .frame(height: 9)
+    }
+
+
+    // MARK: - Information
+
+    private var informationSection: some View {
+
+        VStack(alignment: .leading, spacing: 16) {
+
+            Text("Information")
+                .font(.title3.weight(.bold))
+
+            informationRow(
+                title: "Height",
+                leftValue: String(format: "%.1f m", leftPokemon.height),
+                rightValue: String(format: "%.1f m", rightPokemon.height)
+            )
+
+            informationRow(
+                title: "Weight",
+                leftValue: String(format: "%.1f kg", leftPokemon.weight),
+                rightValue: String(format: "%.1f kg", rightPokemon.weight)
+            )
+
+            informationRow(
+                title: "Type",
+                leftValue: "\(leftPokemon.typeIcon) \(leftPokemon.primaryType)",
+                rightValue: "\(rightPokemon.typeIcon) \(rightPokemon.primaryType)"
+            )
+
+            informationRow(
+                title: "Abilities",
+                leftValue: leftPokemon.abilities.joined(separator: ", "),
+                rightValue: rightPokemon.abilities.joined(separator: ", ")
+            )
+        }
+        .padding(.horizontal)
+    }
+
+
+    // MARK: - Information Row
+
+    private func informationRow(
+        title: String,
+        leftValue: String,
+        rightValue: String
+    ) -> some View {
+
+        HStack(alignment: .top, spacing: 10) {
+
+            VStack(alignment: .leading, spacing: 4) {
+
+                Text(leftValue)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(leftPokemon.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 65)
+
+            VStack(alignment: .trailing, spacing: 4) {
+
+                Text(rightValue)
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.trailing)
+
+                Text(rightPokemon.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(14)
+        .background(Color.secondary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
+
 
 #Preview {
+
     NavigationStack {
-        CompareResultView(pokemonA: samplePokemon[0], pokemonB: samplePokemon[1])
+
+        CompareResultView(
+            leftPokemon: samplePokemon[0],
+            rightPokemon: samplePokemon[3]
+        )
     }
 }
