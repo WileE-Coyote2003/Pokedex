@@ -213,6 +213,13 @@ struct CompareResultView: View {
                     color: leftColor
                 )
 
+                statComparisonIndicator(
+                    leftValue: leftValue,
+                    rightValue: rightValue,
+                    leftColor: leftColor,
+                    rightColor: rightColor
+                )
+
                 statBar(
                     value: rightValue,
                     color: rightColor
@@ -245,6 +252,38 @@ struct CompareResultView: View {
             }
         }
         .frame(height: 9)
+    }
+
+
+    // MARK: - Stat Comparison Indicator
+
+    @ViewBuilder
+    private func statComparisonIndicator(
+        leftValue: Int,
+        rightValue: Int,
+        leftColor: Color,
+        rightColor: Color
+    ) -> some View {
+
+        if leftValue > rightValue {
+            Image(systemName: "chevron.left")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(leftColor)
+                .frame(width: 18, height: 18)
+                .accessibilityLabel("Left Pokémon has the higher stat")
+        } else if rightValue > leftValue {
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(rightColor)
+                .frame(width: 18, height: 18)
+                .accessibilityLabel("Right Pokémon has the higher stat")
+        } else {
+            Image(systemName: "equal")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
+                .accessibilityLabel("Both Pokémon have equal stats")
+        }
     }
 
 
@@ -295,33 +334,19 @@ struct CompareResultView: View {
 
         HStack(alignment: .top, spacing: 10) {
 
-            VStack(alignment: .leading, spacing: 4) {
-
-                Text(leftValue)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(leftPokemon.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(leftValue)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(title)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
                 .frame(width: 65)
 
-            VStack(alignment: .trailing, spacing: 4) {
-
-                Text(rightValue)
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.trailing)
-
-                Text(rightPokemon.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(rightValue)
+                .font(.subheadline.weight(.semibold))
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(14)
         .background(Color.secondary.opacity(0.06))

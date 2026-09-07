@@ -28,9 +28,17 @@ struct PokemonCardView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 120)
 
-            Text(pokemon.name)
-                .font(.headline)
-                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(pokemon.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                Text(pokemon.formattedNumber)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
 
             HStack(spacing: 5) {
                 Text(pokemon.typeIcon)

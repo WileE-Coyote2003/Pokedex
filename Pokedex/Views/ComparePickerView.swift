@@ -47,7 +47,10 @@ struct ComparePickerView: View {
         .safeAreaInset(edge: .bottom) {
             if selected.count == 2 {
                 NavigationLink {
-                    CompareResultView(pokemonA: selected[0], pokemonB: selected[1])
+                    CompareResultView(
+                        leftPokemon: selected[0],
+                        rightPokemon: selected[1]
+                    )
                 } label: {
                     Text("Compare")
                         .font(.headline)
@@ -201,9 +204,15 @@ private struct ComparePickCard: View {
 
             Spacer()
 
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
-                .foregroundStyle(isSelected ? pokemonTypeColor(for: pokemon.primaryType) : Color.secondary)
+            HStack(spacing: 8) {
+                Text(pokemon.formattedNumber)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? pokemonTypeColor(for: pokemon.primaryType) : Color.secondary)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
