@@ -46,19 +46,9 @@ struct TeamCard<Destination: View>: View {
 
                 HStack(spacing: 8) {
                     ForEach(0..<capacity, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                            .aspectRatio(1, contentMode: .fit)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(
-                                        Color.secondary.opacity(0.18),
-                                        style: StrokeStyle(
-                                            lineWidth: 1,
-                                            dash: [5, 4]
-                                        )
-                                    )
-                            }
+                        TeamPokemonSlot(
+                            pokemon: index < pokemonCount ? members[index] : nil
+                        )
                     }
                 }
             }
@@ -78,6 +68,37 @@ struct TeamCard<Destination: View>: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct TeamPokemonSlot: View {
+    let pokemon: Pokemon?
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(Color(uiColor: .secondarySystemBackground))
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                if let pokemon {
+                    PokemonArtworkView(pokemon: pokemon)
+                        .padding(4)
+                }
+            }
+            .overlay {
+                if pokemon == nil {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(
+                            Color.secondary.opacity(0.18),
+                            style: StrokeStyle(
+                                lineWidth: 1,
+                                dash: [5, 4]
+                            )
+                        )
+                }
+            }
+            .accessibilityLabel(
+                pokemon.map { "\($0.name) team member" } ?? "Empty team slot"
+            )
     }
 }
 

@@ -48,16 +48,16 @@ struct TeamView: View {
                 } else {
                     LazyVStack(spacing: 16) {
                         ForEach(teams) { team in
+                            let members = team.sortedMembers.map(\.pokemon)
+
                             TeamCard(
                                 name: team.name,
-                                members: [],
+                                members: members,
                                 pokeballAssetName: team.pokeballAssetName,
                                 borderColor: accentColor(for: team.pokeballAssetName),
                                 destination: TeamDetail(
-                                    teamName: team.name,
-                                    pokeballAssetName: team.pokeballAssetName,
-                                    accentColor: accentColor(for: team.pokeballAssetName),
-                                    members: []
+                                    team: team,
+                                    accentColor: accentColor(for: team.pokeballAssetName)
                                 )
                             )
                             .accessibilityIdentifier("teamCard-\(team.id.uuidString)")
@@ -100,5 +100,8 @@ struct TeamView: View {
     NavigationStack {
         TeamView()
     }
-    .modelContainer(for: PokemonTeam.self, inMemory: true)
+    .modelContainer(
+        for: [PokemonTeam.self, PokemonTeamMember.self],
+        inMemory: true
+    )
 }

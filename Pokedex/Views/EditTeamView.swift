@@ -1,19 +1,24 @@
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 
 struct EditTeamView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
+    @Bindable var team: PokemonTeam
     let capacity: Int
 
     @State private var draftTeamName: String
     @State private var draftMembers: [Pokemon]
     @State private var draggedMember: Pokemon?
+    @State private var isShowingSaveError = false
 
-    init(teamName: String, members: [Pokemon], capacity: Int = 6) {
+    init(team: PokemonTeam, capacity: Int = 6) {
+        self.team = team
         self.capacity = capacity
-        _draftTeamName = State(initialValue: teamName)
-        _draftMembers = State(initialValue: members)
+        _draftTeamName = State(initialValue: team.name)
+        _draftMembers = State(initialValue: team.sortedMembers.map(\.pokemon))
     }
 
     var body: some View {
@@ -88,13 +93,18 @@ struct EditTeamView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        dismiss()
+                        saveChanges()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(.red)
                     .disabled(trimmedTeamName.isEmpty)
                 }
             }
+        }
+        .alert("Couldn’t Save Team", isPresented: $isShowingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your team changes couldn’t be saved. Please try again.")
         }
     }
 
@@ -138,6 +148,33 @@ struct EditTeamView: View {
         draftTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private func saveChanges() {
+        let draftPokemonIDs = Set(draftMembers.map(\.id))
+        let removedMembers = team.members.filter {
+            !draftPokemonIDs.contains($0.pokemonID)
+        }
+
+        team.name = trimmedTeamName
+        team.members.removeAll {
+            !draftPokemonIDs.contains($0.pokemonID)
+        }
+
+        for member in removedMembers {
+            modelContext.delete(member)
+        }
+
+        for (position, pokemon) in draftMembers.enumerated() {
+            team.members.first { $0.pokemonID == pokemon.id }?.position = position
+        }
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            isShowingSaveError = true
+        }
+    }
 }
 
 private struct EditTeamMemberRow: View {
@@ -156,10 +193,8 @@ private struct EditTeamMemberRow: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Remove \(pokemon.name)")
 
-            // Intentionally empty to reserve the future Pokémon artwork position.
-            Color.clear
+            PokemonArtworkView(pokemon: pokemon)
                 .frame(width: 62, height: 68)
-                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(pokemon.name)
@@ -258,8 +293,17 @@ private struct EditTeamTypeBadge: View {
 }
 
 #Preview {
-    EditTeamView(
-        teamName: "Kanto Champions",
-        members: Array(samplePokemon.prefix(6))
+    let team = PokemonTeam(
+        name: "Kanto Champions",
+        pokeballAssetName: "pokeball-red"
     )
+    team.members = Array(samplePokemon.prefix(6)).enumerated().map { position, pokemon in
+        PokemonTeamMember(pokemon: pokemon, position: position)
+    }
+
+    return EditTeamView(team: team)
+        .modelContainer(
+            for: [PokemonTeam.self, PokemonTeamMember.self],
+            inMemory: true
+        )
 }
