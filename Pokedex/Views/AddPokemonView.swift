@@ -10,7 +10,9 @@ struct AddPokemonView: View {
     @State private var selectedType = "All"
     @State private var selectedPokemonIDs: Set<Int>
 
-    private let filters = ["All", "Normal", "Fire", "Water", "Grass", "Electric"]
+    private var filters: [String] {
+        ["All"] + Pokemon.allTypes
+    }
 
     init(
         pokemon: [Pokemon],

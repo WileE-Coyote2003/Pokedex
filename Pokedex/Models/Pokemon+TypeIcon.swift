@@ -1,4 +1,25 @@
 extension Pokemon {
+    static let allTypes = [
+        "Normal",
+        "Fire",
+        "Water",
+        "Electric",
+        "Grass",
+        "Ice",
+        "Fighting",
+        "Poison",
+        "Ground",
+        "Flying",
+        "Psychic",
+        "Bug",
+        "Rock",
+        "Ghost",
+        "Dragon",
+        "Dark",
+        "Steel",
+        "Fairy"
+    ]
+
     var typeIcon: String {
         switch primaryType.lowercased() {
         case "fire": "🔥"

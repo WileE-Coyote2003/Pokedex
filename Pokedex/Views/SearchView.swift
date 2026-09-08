@@ -3,18 +3,32 @@ import SwiftUI
 struct SearchView: View {
 
     @State private var searchText = ""
+    @State private var selectedType: String?
+
+    private var availableTypes: [String] {
+        Pokemon.allTypes
+    }
 
     private var searchResults: [Pokemon] {
         let query = searchText
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !query.isEmpty else {
-            return samplePokemon
-        }
+        return samplePokemon.filter { pokemon in
+            let matchesName = query.isEmpty
+                || pokemon.name.localizedCaseInsensitiveContains(query)
+            let matchesType = selectedType.map { selectedType in
+                pokemon.types.contains {
+                    $0.caseInsensitiveCompare(selectedType) == .orderedSame
+                }
+            } ?? true
 
-        return samplePokemon.filter {
-            $0.name.localizedCaseInsensitiveContains(query)
+            return matchesName && matchesType
         }
+    }
+
+    private var hasActiveFilters: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || selectedType != nil
     }
 
     var body: some View {
@@ -48,14 +62,38 @@ struct SearchView: View {
             .padding(.horizontal)
             .padding(.top, 10)
 
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    TypeFilterChip(
+                        title: "All",
+                        color: .red,
+                        isSelected: selectedType == nil
+                    ) {
+                        selectedType = nil
+                    }
+
+                    ForEach(availableTypes, id: \.self) { type in
+                        TypeFilterChip(
+                            title: type,
+                            color: pokemonTypeColor(for: type),
+                            isSelected: selectedType == type
+                        ) {
+                            selectedType = type
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+            }
+            .accessibilityLabel("Pokémon type filter")
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                         ? "All Pokémon (\(searchResults.count))"
-                         : "Results (\(searchResults.count))")
+                    Text(hasActiveFilters
+                         ? "Results (\(searchResults.count))"
+                         : "All Pokémon (\(searchResults.count))")
                         .font(.title3)
                         .fontWeight(.bold)
-                        .padding(.top, 10)
 
                     if searchResults.isEmpty {
                         Text("No Pokémon found")
@@ -84,6 +122,34 @@ struct SearchView: View {
         }
         .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct TypeFilterChip: View {
+    let title: String
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isSelected ? color : .secondary)
+                .padding(.horizontal, 14)
+                .frame(height: 36)
+                .background(
+                    isSelected ? color.opacity(0.18) : Color(.secondarySystemBackground),
+                    in: Capsule()
+                )
+                .overlay {
+                    Capsule()
+                        .stroke(isSelected ? color : .clear, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) type")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }
 }
 
