@@ -10,6 +10,9 @@ import SwiftUI
 struct TeamDetail: View {
     @Environment(\.dismiss) private var dismiss
 
+    @State private var isShowingPokemonPicker = false
+    @State private var isShowingTeamEditor = false
+
     let teamName: String
     let pokeballAssetName: String
     let accentColor: Color
@@ -49,7 +52,7 @@ struct TeamDetail: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") {
-                    // Editing will be connected when team persistence is added.
+                    isShowingTeamEditor = true
                 }
                 .fontWeight(.semibold)
                 .foregroundStyle(.red)
@@ -57,7 +60,7 @@ struct TeamDetail: View {
         }
         .safeAreaInset(edge: .bottom) {
             Button {
-                // Pokémon selection will be connected later.
+                isShowingPokemonPicker = true
             } label: {
                 Label("Add Pokémon", systemImage: "plus")
                     .font(.headline)
@@ -71,6 +74,19 @@ struct TeamDetail: View {
             .padding(.horizontal, 28)
             .padding(.vertical, 12)
             .background(.white.opacity(0.96))
+        }
+        .fullScreenCover(isPresented: $isShowingPokemonPicker) {
+            AddPokemonView(
+                pokemon: samplePokemon,
+                selectionLimit: capacity
+            )
+        }
+        .fullScreenCover(isPresented: $isShowingTeamEditor) {
+            EditTeamView(
+                teamName: teamName,
+                members: members,
+                capacity: capacity
+            )
         }
     }
 
