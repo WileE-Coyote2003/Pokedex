@@ -6,19 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TeamCreate: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var teamName = ""
     @State private var selectedPokeball: PokeballOption = .pokeBall
-    @State private var selectedPokemonIDs: Set<Int> = []
+    @State private var isShowingSaveError = false
 
     private let characterLimit = 20
-    private let pokemonColumns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
 
     var body: some View {
         ScrollView {
@@ -85,42 +83,8 @@ struct TeamCreate: View {
                 }
                 .padding(.top, 14)
 
-                HStack {
-                    Text("Choose Pokémon")
-                        .font(.headline)
-
-                    Spacer()
-
-                    Text("\(selectedPokemonIDs.count) / 6")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 28)
-
-                LazyVGrid(columns: pokemonColumns, spacing: 10) {
-                    ForEach(samplePokemon) { pokemon in
-                        let isSelected = selectedPokemonIDs.contains(pokemon.id)
-
-                        Button {
-                            if isSelected {
-                                selectedPokemonIDs.remove(pokemon.id)
-                            } else if selectedPokemonIDs.count < 6 {
-                                selectedPokemonIDs.insert(pokemon.id)
-                            }
-                        } label: {
-                            TeamPokemonOptionCard(
-                                pokemon: pokemon,
-                                isSelected: isSelected
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.top, 12)
-
                 Button {
-                    // Save the new team when team storage is added.
-                    dismiss()
+                    createTeam()
                 } label: {
                     Text("Create Team")
                         .font(.headline)
@@ -155,10 +119,32 @@ struct TeamCreate: View {
                 .accessibilityLabel("Back")
             }
         }
+        .alert("Couldn’t Create Team", isPresented: $isShowingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The team couldn’t be saved. Please try again.")
+        }
     }
 
     private var trimmedTeamName: String {
         teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func createTeam() {
+        let team = PokemonTeam(
+            name: trimmedTeamName,
+            pokeballAssetName: selectedPokeball.assetName
+        )
+
+        modelContext.insert(team)
+
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.delete(team)
+            isShowingSaveError = true
+        }
     }
 
     private var teamIcon: some View {
@@ -170,44 +156,6 @@ struct TeamCreate: View {
                 Circle()
                     .stroke(.blue.opacity(0.35), lineWidth: 1.5)
             }
-    }
-}
-
-private struct TeamPokemonOptionCard: View {
-    let pokemon: Pokemon
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(pokemon.typeIcon)
-                .font(.title2)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pokemon.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(pokemon.primaryType)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isSelected ? .blue : .secondary)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity)
-        .background(
-            isSelected ? Color.blue.opacity(0.1) : Color(uiColor: .secondarySystemBackground),
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isSelected ? Color.blue : Color.secondary.opacity(0.15), lineWidth: 1)
-        }
     }
 }
 

@@ -6,8 +6,12 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TeamView: View {
+    @Query(sort: \PokemonTeam.createdAt, order: .reverse)
+    private var teams: [PokemonTeam]
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -38,35 +42,29 @@ struct TeamView: View {
                     .accessibilityLabel("Create a new team")
                 }
 
-                TeamCard(
-                    name: "Kanto Champions",
-                    members: kantoMembers,
-                    pokeballAssetName: "teamPokeBall",
-                    borderColor: .red,
-                    destination: TeamDetail(
-                        teamName: "Kanto Champions",
-                        pokeballAssetName: "teamPokeBall",
-                        accentColor: .red,
-                        members: kantoMembers
-                    )
-                )
-                .padding(.top, 24)
-                .accessibilityIdentifier("kantoChampionsTeamCard")
-
-                TeamCard(
-                    name: "Sinnoh Legends",
-                    members: sinnohMembers,
-                    pokeballAssetName: "teamGreatBall",
-                    borderColor: .blue,
-                    destination: TeamDetail(
-                        teamName: "Sinnoh Legends",
-                        pokeballAssetName: "teamGreatBall",
-                        accentColor: .blue,
-                        members: sinnohMembers
-                    )
-                )
-                .padding(.top, 16)
-                .accessibilityIdentifier("sinnohLegendsTeamCard")
+                if teams.isEmpty {
+                    emptyState
+                        .padding(.top, 64)
+                } else {
+                    LazyVStack(spacing: 16) {
+                        ForEach(teams) { team in
+                            TeamCard(
+                                name: team.name,
+                                members: [],
+                                pokeballAssetName: team.pokeballAssetName,
+                                borderColor: accentColor(for: team.pokeballAssetName),
+                                destination: TeamDetail(
+                                    teamName: team.name,
+                                    pokeballAssetName: team.pokeballAssetName,
+                                    accentColor: accentColor(for: team.pokeballAssetName),
+                                    members: []
+                                )
+                            )
+                            .accessibilityIdentifier("teamCard-\(team.id.uuidString)")
+                        }
+                    }
+                    .padding(.top, 24)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -79,12 +77,22 @@ struct TeamView: View {
         .navigationBarHidden(true)
     }
 
-    private var kantoMembers: [Pokemon] {
-        Array(samplePokemon.prefix(6))
+    private var emptyState: some View {
+        ContentUnavailableView(
+            "No Teams Yet",
+            systemImage: "person.3",
+            description: Text("Tap the plus button to create your first team.")
+        )
     }
 
-    private var sinnohMembers: [Pokemon] {
-        Array(samplePokemon.suffix(2))
+    private func accentColor(for assetName: String) -> Color {
+        switch assetName {
+        case "teamGreatBall": .blue
+        case "teamUltraBall": .yellow
+        case "teamMasterBall": .purple
+        case "teamSafariBall": .green
+        default: .red
+        }
     }
 }
 
@@ -92,4 +100,5 @@ struct TeamView: View {
     NavigationStack {
         TeamView()
     }
+    .modelContainer(for: PokemonTeam.self, inMemory: true)
 }
