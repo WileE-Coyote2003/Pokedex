@@ -8,18 +8,34 @@ struct AddPokemonView: View {
 
     @State private var searchText = ""
     @State private var selectedType = "All"
-    @State private var selectedPokemonIDs: Set<Int>
+    @State private var selectedPokemon: [Pokemon]
+    @State private var loadedPokemon: [Pokemon]
+    @State private var isLoading = false
+    @State private var isLoadingMore = false
+    @State private var errorMessage: String?
+    @State private var paginationErrorMessage: String?
+    @State private var nextOffset: Int?
+    @State private var refreshToken = 0
+    @State private var isShowingCapacityAlert = false
 
-    private let filters = ["All", "Normal", "Fire", "Water", "Grass", "Electric"]
+    private let service = PokemonService()
+    private let onSave: ([Pokemon]) -> Void
+
+    private var filters: [String] {
+        ["All"] + Pokemon.allTypes
+    }
 
     init(
         pokemon: [Pokemon],
-        initiallySelectedIDs: Set<Int> = [],
-        selectionLimit: Int = 6
+        initiallySelectedPokemon: [Pokemon] = [],
+        selectionLimit: Int = 6,
+        onSave: @escaping ([Pokemon]) -> Void = { _ in }
     ) {
         self.pokemon = pokemon
         self.selectionLimit = selectionLimit
-        _selectedPokemonIDs = State(initialValue: initiallySelectedIDs)
+        self.onSave = onSave
+        _selectedPokemon = State(initialValue: initiallySelectedPokemon)
+        _loadedPokemon = State(initialValue: pokemon)
     }
 
     var body: some View {
@@ -32,17 +48,38 @@ struct AddPokemonView: View {
                 typeFilters
                     .padding(.top, 12)
 
-                if filteredPokemon.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
+                selectionCount
+
+                if isLoading {
+                    ProgressView("Loading Pokémon...")
                         .frame(maxHeight: .infinity)
+                } else if let errorMessage {
+                    ContentUnavailableView {
+                        Label("Unable to Load Pokémon", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(errorMessage)
+                    } actions: {
+                        Button("Try Again") {
+                            refreshToken += 1
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                    }
+                    .frame(maxHeight: .infinity)
+                } else if loadedPokemon.isEmpty {
+                    ContentUnavailableView(
+                        "No Pokémon Found",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try another name, number, or type.")
+                    )
+                    .frame(maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(filteredPokemon) { pokemon in
+                            ForEach(loadedPokemon) { pokemon in
                                 AddPokemonRow(
                                     pokemon: pokemon,
-                                    isSelected: selectedPokemonIDs.contains(pokemon.id),
-                                    isSelectionDisabled: isSelectionDisabled(for: pokemon)
+                                    isSelected: isSelected(pokemon)
                                 ) {
                                     toggleSelection(for: pokemon)
                                 }
@@ -50,6 +87,8 @@ struct AddPokemonView: View {
                                 Divider()
                                     .padding(.leading, 104)
                             }
+
+                            paginationFooter
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
@@ -59,6 +98,9 @@ struct AddPokemonView: View {
             .background(Color(uiColor: .systemBackground))
             .navigationTitle("Add Pokémon")
             .navigationBarTitleDisplayMode(.inline)
+            .task(id: requestID) {
+                await loadPokemon()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -69,12 +111,17 @@ struct AddPokemonView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
+                    Button("Add") {
+                        addToTeam()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(.red)
                 }
+            }
+            .alert("Team Limit Reached", isPresented: $isShowingCapacityAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("A Trainer can carry a maximum of 6 Pokémon at one time.")
             }
         }
     }
@@ -84,7 +131,7 @@ struct AddPokemonView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search Pokémon...", text: $searchText)
+            TextField("Name or Pokédex number", text: $searchText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
@@ -132,41 +179,173 @@ struct AddPokemonView: View {
         }
     }
 
-    private var filteredPokemon: [Pokemon] {
-        pokemon.filter { pokemon in
-            let matchesSearch = searchText.isEmpty
-                || pokemon.name.localizedCaseInsensitiveContains(searchText)
-            let matchesType = selectedType == "All"
-                || pokemon.types.contains { $0.caseInsensitiveCompare(selectedType) == .orderedSame }
-            return matchesSearch && matchesType
+    private var selectionCount: some View {
+        HStack {
+            Text("Selected")
+                .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Text("\(selectedPokemon.count) / \(selectionLimit)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(
+                    selectedPokemon.count > selectionLimit ? .red : .secondary
+                )
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if let paginationErrorMessage {
+            Button("Try Loading More") {
+                Task {
+                    await loadNextPage()
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.red)
+            .padding(.vertical, 20)
+            .accessibilityHint(paginationErrorMessage)
+        } else if nextOffset != nil {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .task {
+                    await loadNextPage()
+                }
         }
     }
 
-    private func isSelectionDisabled(for pokemon: Pokemon) -> Bool {
-        !selectedPokemonIDs.contains(pokemon.id) && selectedPokemonIDs.count >= selectionLimit
+    private var requestID: String {
+        "\(normalizedSearch)|\(selectedType)|\(refreshToken)"
+    }
+
+    private var normalizedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func loadPokemon() async {
+        isLoading = true
+        isLoadingMore = false
+        errorMessage = nil
+        paginationErrorMessage = nil
+        nextOffset = nil
+
+        do {
+            if !normalizedSearch.isEmpty {
+                try await Task.sleep(for: .milliseconds(350))
+
+                let result: Pokemon
+                if let pokedexNumber = Int(normalizedSearch) {
+                    result = try await service.fetchPokemon(
+                        pokedexNumber: pokedexNumber
+                    )
+                } else {
+                    result = try await service.fetchPokemon(name: normalizedSearch)
+                }
+
+                loadedPokemon = matchesSelectedType(result) ? [result] : []
+            } else if selectedType != "All" {
+                loadedPokemon = try await service.fetchPokemon(type: selectedType)
+            } else {
+                let page = try await service.fetchPokemon()
+                loadedPokemon = page.pokemon
+                nextOffset = page.nextOffset
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            loadedPokemon = []
+            errorMessage = "Check your connection or try a different Pokémon."
+        }
+
+        isLoading = false
+    }
+
+    private func loadNextPage() async {
+        guard let offset = nextOffset,
+              !isLoadingMore,
+              normalizedSearch.isEmpty,
+              selectedType == "All" else {
+            return
+        }
+
+        isLoadingMore = true
+        paginationErrorMessage = nil
+
+        do {
+            let page = try await service.fetchPokemon(limit: 20, offset: offset)
+            let loadedIDs = Set(loadedPokemon.map(\.id))
+            loadedPokemon.append(
+                contentsOf: page.pokemon.filter { !loadedIDs.contains($0.id) }
+            )
+            nextOffset = page.nextOffset
+        } catch is CancellationError {
+            isLoadingMore = false
+            return
+        } catch {
+            paginationErrorMessage = "Check your connection and try again."
+        }
+
+        isLoadingMore = false
+    }
+
+    private func matchesSelectedType(_ pokemon: Pokemon) -> Bool {
+        selectedType == "All" || pokemon.types.contains {
+            $0.caseInsensitiveCompare(selectedType) == .orderedSame
+        }
+    }
+
+    private func isSelected(_ pokemon: Pokemon) -> Bool {
+        selectedPokemon.contains { $0.id == pokemon.id }
     }
 
     private func toggleSelection(for pokemon: Pokemon) {
-        if selectedPokemonIDs.contains(pokemon.id) {
-            selectedPokemonIDs.remove(pokemon.id)
-        } else if selectedPokemonIDs.count < selectionLimit {
-            selectedPokemonIDs.insert(pokemon.id)
+        if isSelected(pokemon) {
+            selectedPokemon.removeAll { $0.id == pokemon.id }
+        } else {
+            selectedPokemon.append(pokemon)
         }
+    }
+
+    private func addToTeam() {
+        guard selectedPokemon.count <= selectionLimit else {
+            isShowingCapacityAlert = true
+            return
+        }
+
+        onSave(selectedPokemon)
+        dismiss()
     }
 }
 
 private struct AddPokemonRow: View {
     let pokemon: Pokemon
     let isSelected: Bool
-    let isSelectionDisabled: Bool
     let action: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
-            // Intentionally empty: artwork will be added when the picker uses live data.
-            Color.clear
-                .frame(width: 68, height: 68)
-                .accessibilityHidden(true)
+            AsyncImage(url: pokemon.imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                case .failure:
+                    Image(systemName: "photo")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(16)
+                        .foregroundStyle(.secondary)
+                default:
+                    ProgressView()
+                }
+            }
+            .frame(width: 68, height: 68)
+            .accessibilityLabel("\(pokemon.name) official artwork")
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(pokemon.name)
@@ -201,13 +380,10 @@ private struct AddPokemonRow: View {
                     }
             }
             .buttonStyle(.plain)
-            .disabled(isSelectionDisabled)
-            .opacity(isSelectionDisabled ? 0.35 : 1)
             .accessibilityLabel(isSelected ? "Remove \(pokemon.name)" : "Add \(pokemon.name)")
         }
         .frame(minHeight: 78)
         .contentShape(Rectangle())
-        .opacity(isSelectionDisabled ? 0.65 : 1)
     }
 }
 

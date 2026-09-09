@@ -6,18 +6,23 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TeamDetail: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var isShowingPokemonPicker = false
     @State private var isShowingTeamEditor = false
+    @State private var isShowingSaveError = false
 
-    let teamName: String
-    let pokeballAssetName: String
+    @Bindable var team: PokemonTeam
     let accentColor: Color
-    let members: [Pokemon]
     var capacity = 6
+
+    private var members: [Pokemon] {
+        team.sortedMembers.map(\.pokemon)
+    }
 
     var body: some View {
         ScrollView {
@@ -33,7 +38,7 @@ struct TeamDetail: View {
             Color.white
                 .ignoresSafeArea()
         }
-        .navigationTitle(teamName)
+        .navigationTitle(team.name)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar(.visible, for: .navigationBar)
@@ -77,22 +82,29 @@ struct TeamDetail: View {
         }
         .fullScreenCover(isPresented: $isShowingPokemonPicker) {
             AddPokemonView(
-                pokemon: samplePokemon,
+                pokemon: members,
+                initiallySelectedPokemon: members,
                 selectionLimit: capacity
-            )
+            ) { selectedPokemon in
+                saveMembers(selectedPokemon)
+            }
         }
         .fullScreenCover(isPresented: $isShowingTeamEditor) {
             EditTeamView(
-                teamName: teamName,
-                members: members,
+                team: team,
                 capacity: capacity
             )
+        }
+        .alert("Couldn’t Save Team", isPresented: $isShowingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your Pokémon couldn’t be saved. Please try again.")
         }
     }
 
     private var teamHeader: some View {
         VStack(spacing: 12) {
-            Image(pokeballAssetName)
+            Image(team.pokeballAssetName)
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
@@ -101,7 +113,7 @@ struct TeamDetail: View {
                 .background(accentColor.opacity(0.14), in: Circle())
 
             VStack(spacing: 4) {
-                Text(teamName)
+                Text(team.name)
                     .font(.title2.bold())
 
                 Text("\(members.count) / \(capacity) Pokémon")
@@ -130,6 +142,31 @@ struct TeamDetail: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.05), radius: 7, y: 2)
     }
+
+    private func saveMembers(_ selectedPokemon: [Pokemon]) {
+        guard selectedPokemon.count <= capacity else { return }
+
+        for member in Array(team.members) {
+            modelContext.delete(member)
+        }
+        team.members.removeAll()
+
+        for (position, pokemon) in selectedPokemon.enumerated() {
+            let member = PokemonTeamMember(
+                pokemon: pokemon,
+                position: position
+            )
+            modelContext.insert(member)
+            team.members.append(member)
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            isShowingSaveError = true
+        }
+    }
 }
 
 private struct TeamMemberRow: View {
@@ -144,10 +181,9 @@ private struct TeamMemberRow: View {
                     .fill(Color(uiColor: .secondarySystemBackground))
                     .frame(width: 88, height: 72)
                     .overlay {
-                        Text(member.typeIcon)
-                            .font(.largeTitle)
+                        PokemonArtworkView(pokemon: member)
+                            .padding(5)
                     }
-                    .accessibilityLabel("\(member.primaryType) type icon")
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(member.name)
@@ -186,12 +222,19 @@ private struct TypeBadge: View {
 }
 
 #Preview {
+    let team = PokemonTeam(
+        name: "Kanto Champions",
+        pokeballAssetName: "teamPokeBall"
+    )
+
     NavigationStack {
         TeamDetail(
-            teamName: "Kanto Champions",
-            pokeballAssetName: "teamPokeBall",
-            accentColor: .red,
-            members: Array(samplePokemon.prefix(3))
+            team: team,
+            accentColor: .red
         )
     }
+    .modelContainer(
+        for: [PokemonTeam.self, PokemonTeamMember.self],
+        inMemory: true
+    )
 }
