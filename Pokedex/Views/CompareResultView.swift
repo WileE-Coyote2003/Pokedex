@@ -266,17 +266,17 @@ struct CompareResultView: View {
     ) -> some View {
 
         if leftValue > rightValue {
-            Image(systemName: "chevron.left")
+            Image(systemName: "chevron.right")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(leftColor)
                 .frame(width: 18, height: 18)
-                .accessibilityLabel("Left Pokémon has the higher stat")
+                .accessibilityLabel("\(leftValue) is greater than \(rightValue)")
         } else if rightValue > leftValue {
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.left")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(rightColor)
                 .frame(width: 18, height: 18)
-                .accessibilityLabel("Right Pokémon has the higher stat")
+                .accessibilityLabel("\(leftValue) is less than \(rightValue)")
         } else {
             Image(systemName: "equal")
                 .font(.caption.weight(.bold))

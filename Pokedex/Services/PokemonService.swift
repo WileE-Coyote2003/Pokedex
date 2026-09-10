@@ -1,5 +1,10 @@
 import Foundation
 
+enum PokemonServiceError: Error {
+    case notFound
+    case invalidResponse
+}
+
 struct PokemonPage {
     let pokemon: [Pokemon]
     let totalCount: Int
@@ -130,12 +135,18 @@ struct PokemonService {
     ) async throws -> Value {
         let (data, response) = try await session.data(from: url)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw URLError(.badServerResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw PokemonServiceError.invalidResponse
         }
 
-        return try JSONDecoder().decode(type, from: data)
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(type, from: data)
+        case 404:
+            throw PokemonServiceError.notFound
+        default:
+            throw PokemonServiceError.invalidResponse
+        }
     }
 
     private func makeURL(
