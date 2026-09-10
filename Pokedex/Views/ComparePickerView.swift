@@ -2,46 +2,35 @@ import SwiftUI
 
 struct ComparePickerView: View {
     let pokemon: [Pokemon]
-    @State private var searchText = ""
     @State private var selected: [Pokemon] = []
-
-    private var filteredPokemon: [Pokemon] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return pokemon }
-        return pokemon.filter { $0.name.localizedCaseInsensitiveContains(query) }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Choose two Pokémon to compare")
-                    .font(.headline)
+            Text("Choose two Pokémon to compare")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
 
-                searchField
+            PokemonSearchBrowser(pokemon: pokemon) {
                 selectionSummary
-            }
-            .padding()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+            } row: { item in
+                let unavailable = selected.count == 2 && !isSelected(item)
 
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(filteredPokemon) { item in
-                        let unavailable = selected.count == 2 && !selected.contains(item)
-
-                        Button {
-                            toggleSelection(item)
-                        } label: {
-                            ComparePickCard(
-                                pokemon: item,
-                                isSelected: selected.contains(item),
-                                isUnavailable: unavailable
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(unavailable)
-                    }
+                Button {
+                    toggleSelection(item)
+                } label: {
+                    ComparePickCard(
+                        pokemon: item,
+                        isSelected: isSelected(item),
+                        isUnavailable: unavailable
+                    )
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 24)
+                .buttonStyle(.plain)
+                .disabled(unavailable)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -68,31 +57,6 @@ struct ComparePickerView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var searchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-
-            TextField("Search Pokémon...", text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityLabel("Clear search")
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-
     private var selectionSummary: some View {
         HStack(spacing: 10) {
             ForEach(0..<2, id: \.self) { index in
@@ -108,11 +72,15 @@ struct ComparePickerView: View {
     }
 
     private func toggleSelection(_ item: Pokemon) {
-        if let index = selected.firstIndex(of: item) {
+        if let index = selected.firstIndex(where: { $0.id == item.id }) {
             selected.remove(at: index)
         } else if selected.count < 2 {
             selected.append(item)
         }
+    }
+
+    private func isSelected(_ item: Pokemon) -> Bool {
+        selected.contains { $0.id == item.id }
     }
 }
 
