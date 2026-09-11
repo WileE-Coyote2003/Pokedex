@@ -16,6 +16,7 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
     @State private var paginationErrorMessage: String?
     @State private var nextOffset: Int?
     @State private var refreshToken = 0
+    @State private var requestGeneration = 0
 
     private let service = PokemonService()
     private let initialPokemon: [Pokemon]
@@ -200,6 +201,9 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
     }
 
     private func loadPokemon() async {
+        requestGeneration += 1
+        let generation = requestGeneration
+
         let query = normalizedSearch
         let type = selectedType
 
@@ -235,6 +239,7 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
         do {
             if !query.isEmpty {
                 try await Task.sleep(for: .milliseconds(350))
+                try Task.checkCancellation()
 
                 let result: Pokemon
                 if let pokedexNumber = Int(query) {
@@ -244,24 +249,51 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
                 }
 
                 try Task.checkCancellation()
+
+                guard generation == requestGeneration else {
+                    return
+                }
+
                 loadedPokemon = matchesSelectedType(result, type: type) ? [result] : []
             } else if type != "All" {
                 let pokemon = try await service.fetchPokemon(type: type)
                 try Task.checkCancellation()
+
+                guard generation == requestGeneration else {
+                    return
+                }
+
                 loadedPokemon = pokemon.filter { matchesSelectedType($0, type: type) }
             } else {
                 let page = try await service.fetchPokemon()
                 try Task.checkCancellation()
+
+                guard generation == requestGeneration else {
+                    return
+                }
+
                 loadedPokemon = page.pokemon
                 nextOffset = page.nextOffset
             }
         } catch is CancellationError {
             return
         } catch PokemonServiceError.notFound {
+            guard generation == requestGeneration else {
+                return
+            }
+
             loadedPokemon = []
         } catch {
+            guard generation == requestGeneration else {
+                return
+            }
+
             loadedPokemon = []
             errorMessage = "Check your connection and try again."
+        }
+
+        guard generation == requestGeneration else {
+            return
         }
 
         isLoading = false
@@ -275,12 +307,20 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
             return
         }
 
+        let generation = requestGeneration
+
         isLoadingMore = true
         paginationErrorMessage = nil
 
         do {
             let page = try await service.fetchPokemon(limit: 20, offset: offset)
             try Task.checkCancellation()
+
+            guard generation == requestGeneration else {
+                isLoadingMore = false
+                return
+            }
+
             let loadedIDs = Set(loadedPokemon.map(\.id))
             loadedPokemon.append(
                 contentsOf: page.pokemon.filter { !loadedIDs.contains($0.id) }
@@ -290,6 +330,11 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
             isLoadingMore = false
             return
         } catch {
+            guard generation == requestGeneration else {
+                isLoadingMore = false
+                return
+            }
+
             paginationErrorMessage = "Check your connection and try again."
         }
 
