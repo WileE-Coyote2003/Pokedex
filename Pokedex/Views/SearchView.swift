@@ -6,7 +6,7 @@ struct SearchView: View {
 
     init(
         pokemon: [Pokemon] = [],
-        searchMode: PokemonSearchMode = .queryOnly
+        searchMode: PokemonSearchMode = .browse
     ) {
         self.pokemon = pokemon
         self.searchMode = searchMode

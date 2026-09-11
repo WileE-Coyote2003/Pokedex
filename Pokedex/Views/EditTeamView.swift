@@ -14,7 +14,7 @@ struct EditTeamView: View {
     @State private var draggedMember: Pokemon?
     @State private var isShowingSaveError = false
 
-    init(team: PokemonTeam, capacity: Int = 6) {
+    init(team: PokemonTeam, capacity: Int = PokemonTeam.capacity) {
         self.team = team
         self.capacity = capacity
         _draftTeamName = State(initialValue: team.name)

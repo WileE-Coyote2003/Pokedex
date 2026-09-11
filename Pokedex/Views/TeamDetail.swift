@@ -18,7 +18,7 @@ struct TeamDetail: View {
 
     @Bindable var team: PokemonTeam
     let accentColor: Color
-    var capacity = 6
+    var capacity = PokemonTeam.capacity
 
     private var members: [Pokemon] {
         team.sortedMembers.map(\.pokemon)
@@ -173,8 +173,8 @@ private struct TeamMemberRow: View {
     let member: Pokemon
 
     var body: some View {
-        Button {
-            // Pokémon details will be connected when the team has stored Pokémon.
+        NavigationLink {
+            PokemonDetailView(pokemon: member)
         } label: {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -205,6 +205,7 @@ private struct TeamMemberRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(member.name), \(member.primaryType) type")
+        .accessibilityHint("Shows details for \(member.name)")
     }
 }
 

@@ -8,6 +8,8 @@ import SwiftData
 
 @Model
 final class PokemonTeam {
+    static let capacity = 6
+
     @Attribute(.unique) var id: UUID
     var name: String
     var pokeballAssetName: String

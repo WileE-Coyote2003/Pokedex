@@ -343,6 +343,8 @@ struct PokemonSearchBrowser<Header: View, Row: View>: View {
 
     private func matchesSelectedType(_ pokemon: Pokemon, type: String) -> Bool {
         type == "All"
-            || pokemon.primaryType.caseInsensitiveCompare(type) == .orderedSame
+            || pokemon.types.contains {
+                $0.caseInsensitiveCompare(type) == .orderedSame
+            }
     }
 }

@@ -6,13 +6,22 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct PokemonDetailView: View {
+    @Query private var teams: [PokemonTeam]
+
     let pokemon: Pokemon
     @State private var isFavorite = false
-    @State private var addedToTeam = false
+    @State private var isShowingTeamPicker = false
 
     private var themeColor: Color { pokemon.primaryType.color }
+
+    private var teamMembershipCount: Int {
+        teams.count {
+            PokemonTeamMembership.contains(pokemon, in: $0)
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -49,6 +58,9 @@ struct PokemonDetailView: View {
                 }
                 .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
             }
+        }
+        .sheet(isPresented: $isShowingTeamPicker) {
+            AddPokemonToTeamSheet(pokemon: pokemon)
         }
     }
 
@@ -179,13 +191,11 @@ struct PokemonDetailView: View {
 
     private var teamButton: some View {
         Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                addedToTeam.toggle()
-            }
+            isShowingTeamPicker = true
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: addedToTeam ? "checkmark.circle.fill" : "plus.circle.fill")
-                Text(addedToTeam ? "Added to My Team" : "Add to My Team")
+                Image(systemName: teamMembershipCount > 0 ? "checkmark.circle.fill" : "plus.circle.fill")
+                Text(teamButtonTitle)
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
@@ -193,15 +203,32 @@ struct PokemonDetailView: View {
             .foregroundStyle(.white)
             .background(
                 LinearGradient(
-                    colors: addedToTeam ? [.green, .green.opacity(0.75)] : [themeColor, themeColor.opacity(0.7)],
+                    colors: teamMembershipCount > 0
+                        ? [.green, .green.opacity(0.75)]
+                        : [themeColor, themeColor.opacity(0.7)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: (addedToTeam ? Color.green : themeColor).opacity(0.4), radius: 10, y: 5)
+            .shadow(
+                color: (teamMembershipCount > 0 ? Color.green : themeColor).opacity(0.4),
+                radius: 10,
+                y: 5
+            )
         }
         .buttonStyle(.plain)
+    }
+
+    private var teamButtonTitle: String {
+        switch teamMembershipCount {
+        case 0:
+            "Add to My Team"
+        case 1:
+            "Added to 1 Team"
+        default:
+            "Added to \(teamMembershipCount) Teams"
+        }
     }
 }
 

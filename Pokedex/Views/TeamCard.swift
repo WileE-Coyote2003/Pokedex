@@ -7,7 +7,7 @@ import SwiftUI
 struct TeamCard<Destination: View>: View {
     let name: String
     let members: [Pokemon]
-    var capacity = 6
+    var capacity = PokemonTeam.capacity
     var pokeballAssetName = "teamPokeBall"
     var borderColor: Color = .red
 

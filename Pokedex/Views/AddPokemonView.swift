@@ -14,7 +14,7 @@ struct AddPokemonView: View {
     init(
         pokemon: [Pokemon],
         initiallySelectedPokemon: [Pokemon] = [],
-        selectionLimit: Int = 6,
+        selectionLimit: Int = PokemonTeam.capacity,
         onSave: @escaping ([Pokemon]) -> Void = { _ in }
     ) {
         self.pokemon = pokemon
