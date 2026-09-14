@@ -10,10 +10,12 @@ import SwiftData
 
 struct PokemonDetailView: View {
     @Query private var teams: [PokemonTeam]
+    @Environment(SavedPokemonStore.self) private var savedStore
 
     let pokemon: Pokemon
-    @State private var isFavorite = false
     @State private var isShowingTeamPicker = false
+
+    private var isFavorite: Bool { savedStore.isSaved(pokemon) }
 
     private var themeColor: Color { pokemon.primaryType.color }
 
@@ -50,7 +52,7 @@ struct PokemonDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                        isFavorite.toggle()
+                        savedStore.toggle(pokemon)
                     }
                 } label: {
                     Image(systemName: isFavorite ? "heart.fill" : "heart")

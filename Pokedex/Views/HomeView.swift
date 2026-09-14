@@ -47,11 +47,12 @@ struct HomeView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // Favorites action
+                NavigationLink {
+                    SavedPokemonView()
                 } label: {
                     Image(systemName: "heart")
                 }
+                .accessibilityLabel("Saved Pokémon")
             }
         }
     }
