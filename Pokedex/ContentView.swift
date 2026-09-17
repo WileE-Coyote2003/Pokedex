@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @State private var savedPokemonStore = SavedPokemonStore()
+
     var body: some View {
         TabView{
             NavigationStack{
@@ -36,6 +38,7 @@ struct ContentView: View {
                 Label("Compare",systemImage: "arrow.left.arrow.right")
             }
         }
+        .environment(savedPokemonStore)
 //        VStack {
 //            Image(systemName: "globe")
 //                .imageScale(.large)
@@ -52,4 +55,5 @@ struct ContentView: View {
             for: [PokemonTeam.self, PokemonTeamMember.self],
             inMemory: true
         )
+        .environment(SavedPokemonStore())
 }
