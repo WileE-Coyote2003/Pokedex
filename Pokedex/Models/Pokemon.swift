@@ -15,6 +15,7 @@ struct Pokemon: Identifiable, Hashable, Decodable {
     let weight: Double
     let stats: PokemonStats
     let abilities: [String]
+    let speciesName: String
     private let artworkURL: URL?
 
     init(
@@ -25,6 +26,7 @@ struct Pokemon: Identifiable, Hashable, Decodable {
         weight: Double,
         stats: PokemonStats,
         abilities: [String],
+        speciesName: String? = nil,
         artworkURL: URL? = nil
     ) {
         self.id = id
@@ -34,6 +36,7 @@ struct Pokemon: Identifiable, Hashable, Decodable {
         self.weight = weight
         self.stats = stats
         self.abilities = abilities
+        self.speciesName = (speciesName ?? name).lowercased()
         self.artworkURL = artworkURL
     }
 
@@ -62,6 +65,7 @@ struct Pokemon: Identifiable, Hashable, Decodable {
         abilities = response.abilities.map {
             $0.ability.name.replacingOccurrences(of: "-", with: " ").capitalized
         }
+        speciesName = response.species.name
         stats = PokemonStats(
             hp: response.stat(named: "hp"),
             attack: response.stat(named: "attack"),
@@ -80,6 +84,7 @@ private struct APIResponse: Decodable {
     let types: [APITypeSlot]
     let abilities: [APIAbilitySlot]
     let stats: [APIStatSlot]
+    let species: APIName
     let sprites: APISprites
 
     func stat(named name: String) -> Int {

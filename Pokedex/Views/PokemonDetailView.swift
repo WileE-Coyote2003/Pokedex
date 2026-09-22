@@ -9,13 +9,24 @@ import SwiftUI
 import SwiftData
 
 struct PokemonDetailView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var teams: [PokemonTeam]
-    @Environment(SavedPokemonStore.self) private var savedStore
+    @Query private var favorites: [FavoritePokemon]
 
     let pokemon: Pokemon
     @State private var isShowingTeamPicker = false
+    @State private var isShowingFavoriteSaveError = false
+    @State private var speciesDetails: PokemonSpeciesDetails?
+    @State private var isLoadingSpecies = true
+    @State private var speciesErrorMessage: String?
 
-    private var isFavorite: Bool { savedStore.isSaved(pokemon) }
+    private let service = PokemonService()
+
+    private var favorite: FavoritePokemon? {
+        favorites.first { $0.pokemonID == pokemon.id }
+    }
+
+    private var isFavorite: Bool { favorite != nil }
 
     private var themeColor: Color { pokemon.primaryType.color }
 
@@ -29,6 +40,7 @@ struct PokemonDetailView: View {
         ScrollView {
             VStack(spacing: 20) {
                 heroSection
+                speciesSection
                 dimensionsSection
                 statsSection
                 abilitiesSection
@@ -52,7 +64,7 @@ struct PokemonDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                        savedStore.toggle(pokemon)
+                        toggleFavorite()
                     }
                 } label: {
                     Image(systemName: isFavorite ? "heart.fill" : "heart")
@@ -63,6 +75,145 @@ struct PokemonDetailView: View {
         }
         .sheet(isPresented: $isShowingTeamPicker) {
             AddPokemonToTeamSheet(pokemon: pokemon)
+        }
+        .alert("Couldn’t Update Favorites", isPresented: $isShowingFavoriteSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your saved Pokémon couldn’t be updated. Please try again.")
+        }
+        .task(id: pokemon.speciesName) {
+            await loadSpeciesDetails()
+        }
+    }
+
+    // MARK: - Species
+
+    private var speciesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeader("Species & Origin", icon: "globe.asia.australia.fill")
+
+            if isLoadingSpecies {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Loading species information...")
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let speciesDetails {
+                Text(speciesDetails.genus)
+                    .font(.headline)
+
+                Text(speciesDetails.description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 10) {
+                    SpeciesFact(
+                        title: "Region",
+                        value: speciesDetails.region,
+                        icon: "map.fill",
+                        color: themeColor
+                    )
+                    SpeciesFact(
+                        title: "Generation",
+                        value: speciesDetails.generation,
+                        icon: "clock.fill",
+                        color: themeColor
+                    )
+                }
+
+                if let habitat = speciesDetails.habitat {
+                    SpeciesFact(
+                        title: "Habitat",
+                        value: habitat,
+                        icon: "leaf.fill",
+                        color: themeColor
+                    )
+                }
+
+                speciesBadges(for: speciesDetails)
+            } else if let speciesErrorMessage {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(speciesErrorMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Button("Try Again") {
+                        Task {
+                            await loadSpeciesDetails()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(themeColor)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(.secondarySystemBackground),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
+    }
+
+    @ViewBuilder
+    private func speciesBadges(
+        for details: PokemonSpeciesDetails
+    ) -> some View {
+        if details.isBaby || details.isLegendary || details.isMythical {
+            HStack(spacing: 8) {
+                if details.isBaby {
+                    speciesBadge("Baby", icon: "figure.child")
+                }
+                if details.isLegendary {
+                    speciesBadge("Legendary", icon: "star.fill")
+                }
+                if details.isMythical {
+                    speciesBadge("Mythical", icon: "sparkles")
+                }
+            }
+        }
+    }
+
+    private func speciesBadge(_ title: String, icon: String) -> some View {
+        Label(title, systemImage: icon)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(themeColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(themeColor.opacity(0.14), in: Capsule())
+    }
+
+    @MainActor
+    private func loadSpeciesDetails() async {
+        isLoadingSpecies = true
+        speciesErrorMessage = nil
+
+        do {
+            speciesDetails = try await service.fetchSpeciesDetails(for: pokemon)
+        } catch is CancellationError {
+            return
+        } catch {
+            speciesDetails = nil
+            speciesErrorMessage = "Species information is unavailable right now."
+        }
+
+        isLoadingSpecies = false
+    }
+
+    private func toggleFavorite() {
+        if let favorite {
+            modelContext.delete(favorite)
+        } else {
+            modelContext.insert(FavoritePokemon(pokemon: pokemon))
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            isShowingFavoriteSaveError = true
         }
     }
 
@@ -254,6 +405,37 @@ struct DetailMetric: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct SpeciesFact: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+        .background(
+            color.opacity(0.1),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 }
 

@@ -14,6 +14,8 @@ struct PokedexApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [PokemonTeam.self, PokemonTeamMember.self])
+        .modelContainer(
+            for: [PokemonTeam.self, PokemonTeamMember.self, FavoritePokemon.self]
+        )
     }
 }

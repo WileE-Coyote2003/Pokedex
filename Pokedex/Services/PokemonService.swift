@@ -47,6 +47,66 @@ struct PokemonService {
         return try await fetchPokemon(identifier: String(pokedexNumber))
     }
 
+    func fetchPokemon(pokedexNumbers: [Int]) async throws -> [Pokemon] {
+        guard pokedexNumbers.allSatisfy({ $0 > 0 }) else {
+            throw URLError(.badURL)
+        }
+
+        return try await withThrowingTaskGroup(
+            of: (Int, Pokemon).self
+        ) { group in
+            for (index, pokedexNumber) in pokedexNumbers.enumerated() {
+                group.addTask { @MainActor in
+                    let pokemon = try await fetchPokemon(
+                        pokedexNumber: pokedexNumber
+                    )
+                    return (index, pokemon)
+                }
+            }
+
+            var pokemonByIndex: [(index: Int, pokemon: Pokemon)] = []
+            for try await result in group {
+                pokemonByIndex.append(result)
+            }
+
+            return pokemonByIndex
+                .sorted { $0.index < $1.index }
+                .map(\.pokemon)
+        }
+    }
+
+    func fetchSpeciesDetails(for pokemon: Pokemon) async throws -> PokemonSpeciesDetails {
+        let speciesURL = try makeURL(
+            pathComponents: ["pokemon-species", pokemon.speciesName]
+        )
+        let species = try await request(APIPokemonSpeciesResponse.self, from: speciesURL)
+        let generation = try await request(
+            APIGenerationResponse.self,
+            from: species.generation.url
+        )
+
+        let region: String
+        if let mainRegion = generation.mainRegion {
+            let response = try await request(APIRegionResponse.self, from: mainRegion.url)
+            region = response.englishName ?? formattedResourceName(mainRegion.name)
+        } else {
+            region = "Unknown"
+        }
+
+        return PokemonSpeciesDetails(
+            name: species.englishName ?? pokemon.name,
+            genus: species.englishGenus ?? "Pokémon",
+            description: species.englishFlavorText ?? "No Pokédex description is available.",
+            generation: generation.englishName
+                ?? formattedResourceName(species.generation.name),
+            region: region,
+            habitat: species.habitat.map { formattedResourceName($0.name) },
+            isBaby: species.isBaby,
+            isLegendary: species.isLegendary,
+            isMythical: species.isMythical
+        )
+    }
+
     func fetchPokemon(type: String) async throws -> [Pokemon] {
         let type = type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !type.isEmpty else {
@@ -174,6 +234,12 @@ struct PokemonService {
 
         return url
     }
+
+    private func formattedResourceName(_ name: String) -> String {
+        name
+            .replacingOccurrences(of: "-", with: " ")
+            .capitalized
+    }
 }
 
 private struct APIListResponse: Decodable {
@@ -187,6 +253,87 @@ private struct APITypeResponse: Decodable {
 
 private struct APITypePokemon: Decodable {
     let pokemon: APIResource
+}
+
+private struct APIPokemonSpeciesResponse: Decodable {
+    let names: [APILocalizedName]
+    let genera: [APIGenus]
+    let flavorTextEntries: [APIFlavorTextEntry]
+    let habitat: APIResource?
+    let generation: APIResource
+    let isBaby: Bool
+    let isLegendary: Bool
+    let isMythical: Bool
+
+    var englishName: String? {
+        names.first { $0.language.name == "en" }?.name
+    }
+
+    var englishGenus: String? {
+        genera.first { $0.language.name == "en" }?.genus
+    }
+
+    var englishFlavorText: String? {
+        flavorTextEntries
+            .last { $0.language.name == "en" }?
+            .flavorText
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case names
+        case genera
+        case flavorTextEntries = "flavor_text_entries"
+        case habitat
+        case generation
+        case isBaby = "is_baby"
+        case isLegendary = "is_legendary"
+        case isMythical = "is_mythical"
+    }
+}
+
+private struct APIGenerationResponse: Decodable {
+    let mainRegion: APIResource?
+    let names: [APILocalizedName]
+
+    var englishName: String? {
+        names.first { $0.language.name == "en" }?.name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case mainRegion = "main_region"
+        case names
+    }
+}
+
+private struct APIRegionResponse: Decodable {
+    let names: [APILocalizedName]
+
+    var englishName: String? {
+        names.first { $0.language.name == "en" }?.name
+    }
+}
+
+private struct APILocalizedName: Decodable {
+    let name: String
+    let language: APIResource
+}
+
+private struct APIGenus: Decodable {
+    let genus: String
+    let language: APIResource
+}
+
+private struct APIFlavorTextEntry: Decodable {
+    let flavorText: String
+    let language: APIResource
+
+    enum CodingKeys: String, CodingKey {
+        case flavorText = "flavor_text"
+        case language
+    }
 }
 
 private struct APIResource: Decodable {

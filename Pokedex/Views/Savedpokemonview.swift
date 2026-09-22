@@ -1,20 +1,24 @@
 import SwiftUI
+import SwiftData
 
 /// Shows the Pokémon the user has saved (via the heart button on
-/// `PokemonDetailView`). Backed by `SavedPokemonStore`, which is in-memory
-/// only — nothing is persisted, and there is no networking involved.
+/// `PokemonDetailView`). Favorites are persisted locally with SwiftData.
 struct SavedPokemonView: View {
-    @Environment(SavedPokemonStore.self) private var savedStore
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \FavoritePokemon.savedAt, order: .reverse)
+    private var favorites: [FavoritePokemon]
+
+    @State private var isShowingSaveError = false
 
     var body: some View {
         Group {
-            if savedStore.savedPokemon.isEmpty {
+            if favorites.isEmpty {
                 emptyState
             } else {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(savedStore.savedPokemon) { pokemon in
-                            savedRow(for: pokemon)
+                        ForEach(favorites) { favorite in
+                            savedRow(for: favorite)
                         }
                     }
                     .padding()
@@ -23,12 +27,19 @@ struct SavedPokemonView: View {
         }
         .navigationTitle("Saved Pokémon")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Couldn’t Remove Favorite", isPresented: $isShowingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The Pokémon couldn’t be removed from your favorites. Please try again.")
+        }
     }
 
     // MARK: - Row
 
-    private func savedRow(for pokemon: Pokemon) -> some View {
-        HStack(spacing: 10) {
+    private func savedRow(for favorite: FavoritePokemon) -> some View {
+        let pokemon = favorite.pokemon
+
+        return HStack(spacing: 10) {
             NavigationLink {
                 PokemonDetailView(pokemon: pokemon)
             } label: {
@@ -39,7 +50,7 @@ struct SavedPokemonView: View {
 
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    savedStore.remove(pokemon)
+                    remove(favorite)
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
@@ -47,6 +58,17 @@ struct SavedPokemonView: View {
                     .foregroundStyle(.secondary)
             }
             .accessibilityLabel("Remove \(pokemon.name) from saved Pokémon")
+        }
+    }
+
+    private func remove(_ favorite: FavoritePokemon) {
+        modelContext.delete(favorite)
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            isShowingSaveError = true
         }
     }
 
@@ -61,16 +83,9 @@ struct SavedPokemonView: View {
     }
 }
 
-#Preview("With Saved Pokémon") {
-    NavigationStack {
-        SavedPokemonView()
-    }
-    .environment(SavedPokemonStore(savedPokemon: Array(samplePokemon.prefix(4))))
-}
-
 #Preview("Empty State") {
     NavigationStack {
         SavedPokemonView()
     }
-    .environment(SavedPokemonStore())
+    .modelContainer(for: FavoritePokemon.self, inMemory: true)
 }
