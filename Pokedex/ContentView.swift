@@ -6,19 +6,50 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView{
+            NavigationStack{
+                HomeView()
+            }
+            .tabItem {
+                Label("Home",systemImage: "house")
+            }
+            NavigationStack{
+                SearchView()
+            }
+            .tabItem {
+                Label("Search",systemImage: "magnifyingglass")
+            }
+            NavigationStack{
+                TeamView()
+            }
+            .tabItem {
+                Label("Team", image: "pokeball")
+            }
+            NavigationStack{
+                CompareView()
+            }
+            .tabItem {
+                Label("Compare",systemImage: "arrow.left.arrow.right")
+            }
         }
-        .padding()
+//        VStack {
+//            Image(systemName: "globe")
+//                .imageScale(.large)
+//                .foregroundStyle(.tint)
+//            Text("Hello, world!")
+//        }
+//        .padding()
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(
+            for: [PokemonTeam.self, PokemonTeamMember.self, FavoritePokemon.self],
+            inMemory: true
+        )
 }
