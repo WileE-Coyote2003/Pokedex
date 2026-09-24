@@ -8,15 +8,23 @@ struct EditTeamView: View {
 
     @Bindable var team: PokemonTeam
     let capacity: Int
+    let onTeamDeleted: () -> Void
 
     @State private var draftTeamName: String
     @State private var draftMembers: [Pokemon]
     @State private var draggedMember: Pokemon?
     @State private var isShowingSaveError = false
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingDeleteError = false
 
-    init(team: PokemonTeam, capacity: Int = PokemonTeam.capacity) {
+    init(
+        team: PokemonTeam,
+        capacity: Int = PokemonTeam.capacity,
+        onTeamDeleted: @escaping () -> Void = {}
+    ) {
         self.team = team
         self.capacity = capacity
+        self.onTeamDeleted = onTeamDeleted
         _draftTeamName = State(initialValue: team.name)
         _draftMembers = State(initialValue: team.sortedMembers.map(\.pokemon))
     }
@@ -55,7 +63,7 @@ struct EditTeamView: View {
                     memberCard
 
                     Button(role: .destructive) {
-                        // Team deletion will be connected when persistence is added.
+                        isShowingDeleteConfirmation = true
                     } label: {
                         Text("Delete Team")
                             .font(.headline)
@@ -105,6 +113,23 @@ struct EditTeamView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Your team changes couldn’t be saved. Please try again.")
+        }
+        .confirmationDialog(
+            "Delete \(team.name)?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Team", role: .destructive) {
+                deleteTeam()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This team and all of its members will be permanently deleted.")
+        }
+        .alert("Couldn’t Delete Team", isPresented: $isShowingDeleteError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The team couldn’t be deleted. Please try again.")
         }
     }
 
@@ -173,6 +198,19 @@ struct EditTeamView: View {
         } catch {
             modelContext.rollback()
             isShowingSaveError = true
+        }
+    }
+
+    private func deleteTeam() {
+        modelContext.delete(team)
+
+        do {
+            try modelContext.save()
+            dismiss()
+            onTeamDeleted()
+        } catch {
+            modelContext.rollback()
+            isShowingDeleteError = true
         }
     }
 }

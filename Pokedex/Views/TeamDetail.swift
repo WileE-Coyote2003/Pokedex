@@ -92,7 +92,10 @@ struct TeamDetail: View {
         .fullScreenCover(isPresented: $isShowingTeamEditor) {
             EditTeamView(
                 team: team,
-                capacity: capacity
+                capacity: capacity,
+                onTeamDeleted: {
+                    dismiss()
+                }
             )
         }
         .alert("Couldn’t Save Team", isPresented: $isShowingSaveError) {
